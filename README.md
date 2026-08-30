@@ -16,6 +16,7 @@
     ├── test_api.py       # pytest 测试用例（四类）
     ├── db.py             # SQLite 存储测试结果
     ├── report.py         # 生成测试摘要
+    ├── ai_eval.py        # AI 评测模块（LLM 回答质量打分）
     ├── requirements.txt  # 依赖
     └── README.md         # 本文档
 
@@ -29,6 +30,10 @@
 
     # 3. 生成测试摘要
     python report.py
+
+    # 4. AI 评测（需配置 API Key，见下文「AI 评测模块」）
+    set DEEPSEEK_API_KEY=sk-xxx
+    python ai_eval.py
 
 ## 四类测试用例设计
 
@@ -51,3 +56,16 @@
 - **api_client.py** 把 base_url 和超时集中管理，接口地址变更时只改一处。
 - **check()** 先写库再断言，保证失败的用例也会被记录，便于复盘。
 - 结果落 SQLite，便于后续按类别统计、生成趋势。
+
+## AI 评测模块（ai_eval.py）
+
+把「传统测试的断言」迁移到「AI 测试的评测」：用一组评测集提问，用
+**事实性** + **来源可验证性** 两个指标给 LLM 回答打分（0-5 分）。
+
+- 传统接口测试：写断言 → PASS/FAIL（test_api.py）
+- AI 产品测试：建评测集 → 定指标 → 打分（ai_eval.py）
+
+运行前配置 OpenAI 兼容 API Key（DeepSeek / Kimi 均可）：
+
+    set DEEPSEEK_API_KEY=sk-xxx
+    python ai_eval.py
