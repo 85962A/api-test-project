@@ -17,6 +17,7 @@
     ├── db.py             # SQLite 存储测试结果
     ├── report.py         # 生成测试摘要
     ├── ai_eval.py        # AI 评测模块（LLM 回答质量打分）
+    ├── stress_test.py    # 最小并发压测脚本
     ├── requirements.txt  # 依赖
     └── README.md         # 本文档
 
@@ -34,6 +35,9 @@
     # 4. AI 评测（需配置 API Key，见下文「AI 评测模块」）
     set DEEPSEEK_API_KEY=sk-xxx
     python ai_eval.py
+
+    # 5. 最小并发压测（50 并发、200 请求）
+    python stress_test.py 50 200
 
 ## 四类测试用例设计
 
@@ -69,3 +73,11 @@
 
     set DEEPSEEK_API_KEY=sk-xxx
     python ai_eval.py
+
+## 最小并发压测（stress_test.py）
+
+用标准库 ThreadPoolExecutor + requests 起 N 个并发 worker，循环请求正常/边界/异常
+三类接口，按「实际状态码是否命中预期」判定成败，统计命中率、响应时间与状态码分布。
+
+    python stress_test.py 50 200
+    # 50 并发、200 请求 → 输出命中率 / 平均·最小·最大·P95 响应时间 / 状态码分布
