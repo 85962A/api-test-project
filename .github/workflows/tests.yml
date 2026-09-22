@@ -34,6 +34,21 @@ jobs:
       - name: 运行接口自动化测试（输出 JUnit 报告）
         run: pytest -v --junitxml=reports/junit.xml
 
+      - name: 校验用例数量（防止 0 用例/少用例也判通过）
+        if: always()
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          root = ET.parse('reports/junit.xml').getroot()
+          suite = root if root.tag == 'testsuite' else root.find('testsuite')
+          tests = int(suite.get('tests', 0))
+          failures = int(suite.get('failures', 0))
+          errors = int(suite.get('errors', 0))
+          print('collected=%d failures=%d errors=%d' % (tests, failures, errors))
+          if tests < 21:
+              raise SystemExit('用例数异常：只收集到 %d 条（预期 21 条）' % tests)
+          PY
+
       - name: 生成测试摘要（读 SQLite，按类别统计 PASS/FAIL）
         if: always()
         run: |
