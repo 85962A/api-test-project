@@ -27,12 +27,33 @@
 import os
 import json
 import time
+import pathlib
 
 import requests
 
+
+def _load_env_file():
+    """从同目录 .env 读取 KEY=VALUE（无需第三方库）；已存在的环境变量优先。"""
+    env_path = pathlib.Path(__file__).with_name(".env")
+    if not env_path.exists():
+        return
+    for raw in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip().lstrip("\ufeff")          # 防 BOM（记事本/PowerShell 写文件常带 BOM）
+        if line.lower().startswith("export "):       # 兼容 .env 里的 export KEY=VALUE 写法
+            line = line[7:].strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key, value = key.strip(), value.strip().strip('"').strip("'")
+        if key and value and not os.environ.get(key):
+            os.environ[key] = value
+
+
+_load_env_file()
+
 BASE_URL = os.environ.get("AI_EVAL_BASE_URL", "https://api.deepseek.com/v1")
 MODEL = os.environ.get("AI_EVAL_MODEL", "deepseek-chat")
-API_KEY = os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("OPENAI_API_KEY")
+API_KEY = ( os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("OPENAI_API_KEY") or os.environ.get("AI_EVAL_API_KEY"))
 
 # 评测集：技术类、有明确标准答案的问题，便于判断回答是否可靠（覆盖事实/过程/对比/概念四类）
 EVAL_CASES = [
@@ -55,7 +76,12 @@ def call_llm(question):
     """调用 OpenAI 兼容 chat completions 接口，返回回答文本。"""
     if not API_KEY:
         raise SystemExit(
-            "未配置 API Key：请先设置 DEEPSEEK_API_KEY 或 OPENAI_API_KEY 环境变量。"
+            "未配置 API Key。三选一：\n"
+            "  1) 当前窗口临时设置：  set DEEPSEEK_API_KEY=sk-xxxx\n"
+            "     （PowerShell：$env:DEEPSEEK_API_KEY=\"sk-xxxx\"）\n"
+            "  2) 永久设置：          setx DEEPSEEK_API_KEY \"sk-xxxx\"  然后重开终端\n"
+            "  3) 推荐：项目根目录建 .env 文件，写一行 DEEPSEEK_API_KEY=sk-xxxx（已加入 .gitignore）\n"
+            "注意：等号两边不要空格、cmd 下不要加引号、不要把 key 写进代码。"
         )
     resp = requests.post(
         BASE_URL.rstrip("/") + "/chat/completions",
@@ -106,6 +132,7 @@ def run():
     results = []
     print("=" * 60)
     print("AI 评测：评测集 %d 题 ｜ 模型 %s" % (len(EVAL_CASES), MODEL))
+    print("API Key：" + (("已加载 %s…（长度 %d）" % (API_KEY[:6], len(API_KEY))) if API_KEY else "未加载（请见下方提示）"))
     print("=" * 60)
     for i, question in enumerate(EVAL_CASES, 1):
         print("\nQ%d: %s" % (i, question))
