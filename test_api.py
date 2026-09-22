@@ -11,9 +11,9 @@
 运行：pytest -v
 """
 import pytest
-import requests
+
 import db
-from api_client import get, post
+from api_client import get, get_url, post
 
 # httpbin 的 basic-auth 端点：需要 Basic Auth，无凭证返回 401
 AUTH_URL = "https://httpbin.org/basic-auth/user/passwd"
@@ -62,20 +62,24 @@ def test_get_nonexistent_post(conn):
 
 
 def test_post_empty_payload(conn):
+    # BUG-003 修复：原来断言 in (200, 201, 400) 等于三种结果都放行、失去检出能力
+    # 现收紧为唯一预期 201，并校验响应体含 id（实测：{} 与 null 均返回 201 + {"id": 101}）
     r = post("/posts", {})
+    body = r.json() if r.headers.get("Content-Type", "").startswith("application/json") else {}
     check(conn, "POST /posts 空 body", "异常",
-          r.status_code in (200, 201, 400), r.status_code,
-          detail="实际返回 " + str(r.status_code))
+          r.status_code == 201 and isinstance(body, dict) and body.get("id") is not None,
+          r.status_code,
+          detail="期望 201 且响应体含 id，实际 " + str(r.status_code))
 
 
 # ---------- 4. 鉴权用例 ----------
 def test_auth_required(conn):
-    r = requests.get(AUTH_URL, timeout=10)
+    r = get_url(AUTH_URL)  # 走 api_client 的重试封装（BUG-006）
     check(conn, "无凭证访问受保护接口", "鉴权",
           r.status_code == 401, r.status_code)
 
 
 def test_auth_success(conn):
-    r = requests.get(AUTH_URL, auth=("user", "passwd"), timeout=10)
+    r = get_url(AUTH_URL, auth=("user", "passwd"))  # 走重试封装（BUG-006）
     check(conn, "正确凭证访问受保护接口", "鉴权",
           r.status_code == 200, r.status_code)

@@ -10,9 +10,9 @@
 运行：pytest test_api_parametrized.py -v
 """
 import pytest
-import requests
+
 import db
-from api_client import get, post
+from api_client import get, get_url, post
 
 AUTH_URL = "https://httpbin.org/basic-auth/user/passwd"
 
@@ -69,10 +69,13 @@ def test_get_nonexistent(conn, path):
 
 @pytest.mark.parametrize("payload", [{}, None])
 def test_post_empty_payload(conn, payload):
+    # BUG-003 修复：收紧为唯一预期 201 + 校验响应体含 id（原断言 in (200, 201, 400) 形同虚设）
     r = post("/posts", payload)
+    body = r.json() if r.headers.get("Content-Type", "").startswith("application/json") else {}
     check(conn, f"POST /posts 空 body ({payload!r})", "异常",
-          r.status_code in (200, 201, 400), r.status_code,
-          detail="实际返回 " + str(r.status_code))
+          r.status_code == 201 and isinstance(body, dict) and body.get("id") is not None,
+          r.status_code,
+          detail="期望 201 且响应体含 id，实际 " + str(r.status_code))
 
 
 # ---------- 4. 鉴权用例（参数化：无凭证 / 错误凭证 / 正确凭证） ----------
@@ -82,7 +85,7 @@ def test_post_empty_payload(conn, payload):
     (("user", "passwd"), 200),         # 鉴权：正确凭证 → 200
 ])
 def test_basic_auth(conn, auth, expect_status):
-    r = requests.get(AUTH_URL, auth=auth, timeout=10)
+    r = get_url(AUTH_URL, auth=auth)  # 走 api_client 的重试封装（BUG-006）
     check(conn, f"Basic Auth ({'无凭证' if auth is None else auth[1]})", "鉴权",
           r.status_code == expect_status, r.status_code,
           detail=f"期望 {expect_status}")
