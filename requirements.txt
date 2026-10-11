@@ -1,2 +1,6 @@
 requests>=2.28
 pytest>=7.0
+pytest-cov>=5.0
+
+# UI 自动化（仅 ui_test.py 需要；CI 默认跳过该文件，见 ui_test.py 顶部说明）
+selenium>=4.20

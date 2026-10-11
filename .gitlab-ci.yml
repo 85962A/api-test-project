@@ -1,0 +1,22 @@
+# GitLab CI —— 与 .github/workflows/tests.yml（GitHub Actions）等价的流水线
+# 用途：面试时说明「CI/CD 我不是只会 GitHub Actions」，两者思路一致、关键词不同。
+stages:
+  - test
+
+pytest:
+  stage: test
+  image: python:3.12-slim
+  before_script:
+    - pip install --no-cache-dir -r requirements.txt
+  script:
+    - mkdir -p reports
+    - pytest -v --junitxml=reports/junit.xml
+    - python report.py
+  artifacts:
+    when: always
+    reports:
+      junit: reports/junit.xml      # GitLab 原生识别 JUnit 报告，展示成"测试报告"标签页
+    paths:
+      - reports/
+      - test_results.db
+    expire_in: 14 days

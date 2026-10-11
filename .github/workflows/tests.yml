@@ -45,8 +45,8 @@ jobs:
           failures = int(suite.get('failures', 0))
           errors = int(suite.get('errors', 0))
           print('collected=%d failures=%d errors=%d' % (tests, failures, errors))
-          if tests < 21:
-              raise SystemExit('用例数异常：只收集到 %d 条（预期 21 条）' % tests)
+          if tests < 33:
+              raise SystemExit('用例数异常：只收集到 %d 条（预期 >=33 条：接口 21 + 白盒单测 4 + 接口安全 8）' % tests)
           PY
 
       - name: 生成测试摘要（读 SQLite，按类别统计 PASS/FAIL）

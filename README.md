@@ -4,25 +4,37 @@
 
 一个用 Python 对公开 REST API 做四类用例测试、把结果落库生成摘要，并接入 **CI/CD** 与 **缺陷管理** 流程的小项目。
 
-- **21 条接口自动化用例**（7 组场景 + 14 条参数化变体）→ **每次 push 自动执行**（GitHub Actions）
+- **33 条自动化用例** → **每次 push 自动执行**（GitHub Actions）
+  - **21 条接口用例**（7 组场景 + 14 条参数化变体）
+  - **4 条白盒单测**（`test_unit.py`，`db.py` 覆盖率 **100%**）
+  - **8 条接口安全用例**（`test_api_security.py`：未授权 / 越权 / 注入探针 / 信息泄露 / 健壮性 / 安全响应头）
 - **测试结果落 SQLite**，按运行批次（`run_id`）隔离，支持按类别统计与复盘
+- **UI 自动化**（`ui_test.py`，Selenium + 显式等待）本地可跑，CI 默认跳过
+- **容器化**（`Dockerfile`）与 **GitLab CI**（`.gitlab-ci.yml`）双流水线
 - 迁移到 AI 测试：`ai_eval.py` 用「事实性 + 来源可验证性」两个指标给 LLM 回答打分
 
 ## 技术选型
 
 - **Python 3.12**：脚本与断言逻辑
-- **pytest**：测试框架（含 `parametrize` 参数化）
+- **pytest**：测试框架（含 `parametrize` 参数化、`pytest-cov` 覆盖率）
 - **requests**：HTTP 请求（封装了超时与有限次重试）
+- **Selenium**：UI 自动化（仅 `ui_test.py`）
 - **sqlite3**（标准库）：结果落库
-- **GitHub Actions**：持续集成（提交即验证 + 报告归档）
+- **Docker**：容器化运行
+- **GitHub Actions / GitLab CI**：持续集成（提交即验证 + 报告归档）
 
 ## 目录结构
 
     api-test-project/
-    ├── .github/workflows/tests.yml   # CI：push/PR 触发 pytest，归档 JUnit 报告与摘要
+    ├── .github/workflows/tests.yml   # CI（GitHub Actions）：push/PR 触发 pytest，归档 JUnit 报告与摘要
+    ├── .gitlab-ci.yml                # CI（GitLab）等价流水线
+    ├── Dockerfile                    # 容器化：build 后直接跑 pytest
     ├── api_client.py                 # 封装 HTTP 请求（统一 base_url、超时、重试）
     ├── test_api.py                   # 7 组手工设计的用例（正常/边界/异常/鉴权）
     ├── test_api_parametrized.py      # 14 条参数化变体（pytest.mark.parametrize）
+    ├── test_unit.py                  # 4 条白盒单测（只测 db 纯逻辑、不联网，含覆盖率演示）
+    ├── test_api_security.py          # 8 条接口安全用例（认证/授权/注入/信息泄露/健壮性）
+    ├── ui_test.py                    # UI 自动化（Selenium + 显式等待；需本地 ChromeDriver）
     ├── db.py                         # SQLite 存储测试结果（按 run_id 批次隔离）
     ├── report.py                     # 生成测试摘要（只统计最新批次）
     ├── ai_eval.py                    # AI 评测模块（LLM 回答质量打分）
@@ -36,17 +48,30 @@
     # 1. 安装依赖
     pip install -r requirements.txt
 
-    # 2. 运行测试（21 条；每条结果自动写入 test_results.db）
+    # 2. 运行全部测试（33 条；每条结果自动写入 test_results.db）
     pytest -v
 
-    # 3. 生成测试摘要（只统计最新一次运行批次，避免历史累加）
+    # 3. 只看白盒单测 + 覆盖率（db.py 应 100%）
+    pytest test_unit.py -v --cov=db --cov-report=term-missing
+
+    # 4. 只看接口安全用例
+    pytest test_api_security.py -v
+
+    # 5. UI 自动化（需先装 ChromeDriver；默认跳过，用 RUN_UI=1 开启）
+    #    PowerShell:  $env:RUN_UI=1; pytest ui_test.py -v
+    $env:RUN_UI=1; pytest ui_test.py -v
+
+    # 6. 生成测试摘要（只统计最新一次运行批次，避免历史累加）
     python report.py
 
-    # 4. AI 评测（需配置 API Key，见下文「AI 评测模块」）
+    # 7. 容器化运行（需 Docker Desktop 已启动）
+    docker build -t api-test . && docker run --rm api-test
+
+    # 8. AI 评测（需配置 API Key，见下文「AI 评测模块」）
     copy .env.example .env       # 然后填入 DEEPSEEK_API_KEY
     python ai_eval.py
 
-    # 5. 最小并发压测（50 并发、200 请求）
+    # 9. 最小并发压测（50 并发、200 请求）
     python stress_test.py 50 200
 
 ## 测试用例设计（共 21 条）
@@ -126,7 +151,20 @@
 
 ## 已知限制与下一步
 
-- **UI 自动化**未涉及，目前只覆盖接口层
+- **安全测试的边界**：`test_api_security.py` 只对**公开测试接口 / 自建环境 / 书面授权资产**执行（见 `网络安全转型执行手册` 第八节）。它对 SQL 注入的判定是"**没有暴露注入痕迹**"，不等于"证明了不存在注入"——真正的注入验证需在自建靶场更系统地做。
+- **UI 自动化**已覆盖最小示例（`ui_test.py`），但仅 1 条冒烟用例，且 CI 默认跳过（无头容器跑不了浏览器）→ 下一步可接 Selenium Grid 或 Playwright 做真实回归。
+- **`test_unit.py` 的覆盖率只测 `db.py`**（100%）；`api_client.py` / `report.py` 尚未纳入单测。
 - `report.py` 只输出当前批次统计，**尚未做趋势图**
 - BUG-004 / BUG-005 待后续迭代处理（低优先级）
 - 用例依赖外部公开接口，长期方案是引入本地桩服务，彻底消除网络抖动
+
+## 补强交付进度（2026-10-11）
+
+| # | 交付 | 状态 |
+|---|---|---|
+| 交付 3 | `test_unit.py` 白盒单测 + `--cov` | ✅ **已完成**（4 passed，`db.py` 覆盖率 100%） |
+| 交付 2 | `Dockerfile` | ✅ 文件已完成（本机 Docker Desktop 未启动，未 build 验证） |
+| 交付 4 | `.gitlab-ci.yml` | ✅ 已完成（与 GitHub Actions 等价） |
+| 交付 5 | skill / sdd / harness 三行对齐 | 📝 话术已备（见 `网络安全转型执行手册`） |
+| 交付 1 | `ui_test.py` UI 自动化 | ✅ 文件已完成（需 ChromeDriver 才能实跑） |
+| 附加 | `test_api_security.py` 接口安全用例 | ✅ **已完成**（8 passed） |
