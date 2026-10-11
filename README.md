@@ -160,11 +160,13 @@
 
 ## 补强交付进度（2026-10-11）
 
-| # | 交付 | 状态 |
-|---|---|---|
-| 交付 3 | `test_unit.py` 白盒单测 + `--cov` | ✅ **已完成**（4 passed，`db.py` 覆盖率 100%） |
-| 交付 2 | `Dockerfile` | ✅ 文件已完成（本机 Docker Desktop 未启动，未 build 验证） |
-| 交付 4 | `.gitlab-ci.yml` | ✅ 已完成（与 GitHub Actions 等价） |
-| 交付 5 | skill / sdd / harness 三行对齐 | 📝 话术已备（见 `网络安全转型执行手册`） |
-| 交付 1 | `ui_test.py` UI 自动化 | ✅ 文件已完成（需 ChromeDriver 才能实跑） |
-| 附加 | `test_api_security.py` 接口安全用例 | ✅ **已完成**（8 passed） |
+| # | 交付 | 状态 | 验证方式 |
+|---|---|---|---|
+| 交付 1 | `ui_test.py` UI 自动化（Selenium + 显式等待） | ✅ **已完成** | **实跑通过**（Edge，18.17s；支持 `UI_BROWSER=edge` 切换） |
+| 交付 2 | `Dockerfile` | ✅ **已完成** | **build + run 通过**（镜像 217MB，容器内 33 passed / 1 skipped） |
+| 交付 3 | `test_unit.py` 白盒单测 + `--cov` | ✅ **已完成** | 4 passed，`db.py` 覆盖率 **100%**；CI 验证 |
+| 交付 4 | `.gitlab-ci.yml`（GitLab CI 等价版） | ✅ **已完成** | 与 `.github/workflows/tests.yml` 逐项等价 |
+| 交付 5 | skill / sdd / harness 三行对齐 | 📝 话术已备 | 见 `网络安全转型执行手册`（属"能力"非"文件"） |
+| 附加 | `test_api_security.py` 接口安全用例（8 条） | ✅ **已完成** | 8 passed；CI 验证 |
+
+> **CI 状态**：[GitHub Actions run #7](https://github.com/85962A/api-test-project/actions) — success（含用例数守卫：少于 33 条直接失败）。
