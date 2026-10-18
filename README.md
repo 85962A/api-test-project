@@ -95,6 +95,12 @@
 - 主对象：JSONPlaceholder（https://jsonplaceholder.typicode.com ，免费假 REST API）
 - 鉴权演示：httpbin.org（https://httpbin.org/basic-auth/user/passwd ）
 
+## 开发方式说明
+
+本项目的框架搭建与部分函数实现使用了 **AI 编程助手辅助生成初稿**；所有**测试场景设计、断言预期值、缺陷定位与修复**由本人逐条校验、调试与回归确认。
+
+这样做的目的是把时间花在「测试设计」而不是「样板代码」上 —— 参数化用例、辅助函数这类重复性代码由 AI 出初稿，**我负责判断"测什么、期望什么、错了怎么定位"**。
+
 ## 设计说明
 
 - **api_client.py** 集中管理 base_url、超时与**有限次重试**（3 次 + 退避）：用例依赖外部实时接口，
