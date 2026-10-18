@@ -112,7 +112,7 @@
 - **触发**：`push` / `pull_request` 到 `main`，也可在 Actions 页手动 `Run workflow`
 - **环境**：`ubuntu-24.04` + Python 3.12，超时上限 10 分钟
 - **步骤**：安装依赖 → `pytest -v --junitxml=reports/junit.xml` → 生成摘要 → **校验用例数量**
-  （少于 21 条直接让 CI 失败，防止"0 用例也算通过"）→ 上传工件
+  （少于 33 条直接让 CI 失败，防止"0 用例也算通过"）→ 上传工件
 - **归档**：`junit.xml`（JUnit 报告）、`summary.txt`（按类别 PASS/FAIL 摘要）、`test_results.db`，保留 14 天；
   摘要同时写入 Actions 页面的 Step Summary
 

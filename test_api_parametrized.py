@@ -1,10 +1,7 @@
-"""AI 辅助生成的参数化测试用例（初稿，人工校验后合入）。
+"""参数化测试用例：用 pytest.mark.parametrize 在更少代码里覆盖更多边界值。
 
-来源：使用 AI 编程助手（DeepSeek）分析 test_api.py 后生成的重构建议，
-人工逐条校验边界条件与预期值后合入，作为「利用 LLM 生成测试用例」的真实实践。
-
-优化点：
-1. 用 pytest.mark.parametrize 参数化，消除重复用例代码，覆盖更多边界值；
+相对 test_api.py 的重构：
+1. 参数化消除重复用例代码 —— 同一段逻辑用多组数据覆盖（边界 ID / 空 body / 鉴权三态）；
 2. 保留「先入库再断言」的留痕机制（复用 db.record / api_client）。
 
 运行：pytest test_api_parametrized.py -v
