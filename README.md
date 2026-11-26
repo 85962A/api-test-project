@@ -176,3 +176,11 @@
 | 附加 | `test_api_security.py` 接口安全用例（8 条） | ✅ **已完成** | 8 passed；CI 验证 |
 
 > **CI 状态**：[GitHub Actions run #7](https://github.com/85962A/api-test-project/actions) — success（含用例数守卫：少于 33 条直接失败）。
+
+---
+
+## 测试文档
+
+- [测试计划](docs/测试计划.md) —— 范围 / 环境 / 策略 / 资源排期 / 风险应对
+- [测试报告](docs/测试报告.md) —— 执行概览 / 分类统计 / 缺陷统计 / 性能数据 / 漏测根因分析
+
